@@ -4,22 +4,24 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Alamat;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use App\Models\Alamat;
 
 class AlamatController extends Controller
 {
-    // Ambil semua alamat user
+    // ✅ Ambil semua alamat user
     public function index()
     {
         $user = Auth::user();
         $alamat = $user->alamat()->get();
 
-        return response()->json(['alamat' => $alamat]);
+        return response()->json([
+            'success' => true,
+            'alamat' => $alamat,
+        ]);
     }
 
-    // Tambah alamat baru
+    // ✅ Tambah alamat
     public function store(Request $request)
     {
         $user = Auth::user();
@@ -31,8 +33,8 @@ class AlamatController extends Controller
             'utama' => 'boolean',
         ]);
 
-        // Jika alamat ini dijadikan utama, reset lainnya
-        if ($request->utama) {
+        // Reset alamat utama jika 'utama' true
+        if ($request->boolean('utama')) {
             $user->alamat()->update(['utama' => 0]);
         }
 
@@ -43,10 +45,14 @@ class AlamatController extends Controller
             'utama' => $request->boolean('utama'),
         ]);
 
-        return response()->json(['success' => true, 'alamat' => $alamat]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Alamat berhasil ditambahkan.',
+            'alamat' => $alamat,
+        ]);
     }
 
-    // Update alamat
+    // ✅ Update alamat
     public function update(Request $request, $id)
     {
         $user = Auth::user();
@@ -60,7 +66,7 @@ class AlamatController extends Controller
 
         $alamat = $user->alamat()->where('id_alamat', $id)->firstOrFail();
 
-        if ($request->utama) {
+        if ($request->boolean('utama')) {
             $user->alamat()->update(['utama' => 0]);
         }
 
@@ -71,10 +77,14 @@ class AlamatController extends Controller
             'utama' => $request->boolean('utama'),
         ]);
 
-        return response()->json(['success' => true, 'alamat' => $alamat]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Alamat berhasil diperbarui.',
+            'alamat' => $alamat,
+        ]);
     }
 
-    // Hapus alamat
+    // ✅ Hapus alamat
     public function destroy($id)
     {
         $user = Auth::user();
@@ -82,18 +92,26 @@ class AlamatController extends Controller
         $alamat = $user->alamat()->where('id_alamat', $id)->firstOrFail();
         $alamat->delete();
 
-        return response()->json(['success' => true, 'message' => 'Alamat dihapus']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Alamat berhasil dihapus.',
+        ]);
     }
 
-    // Set alamat utama
+    // ✅ Set alamat utama
     public function setPrimary($id)
     {
         $user = Auth::user();
 
         $user->alamat()->update(['utama' => 0]);
 
-        $user->alamat()->where('id_alamat', $id)->update(['utama' => 1]);
+        $target = $user->alamat()->where('id_alamat', $id)->firstOrFail();
+        $target->update(['utama' => 1]);
 
-        return response()->json(['success' => true, 'message' => 'Alamat utama diperbarui']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Alamat utama berhasil disetel.',
+            'alamat' => $target,
+        ]);
     }
 }

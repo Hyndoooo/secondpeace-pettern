@@ -4,66 +4,90 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\Keranjang;
 use App\Models\Produk;
+use App\Models\DetailPesanan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 
 class KeranjangController extends Controller
 {
-    // ✅ Ambil keranjang milik user
-    public function index($id_user)
+    // ✅ Ambil keranjang milik user login
+    public function index()
     {
-        $items = Keranjang::with('produk')->where('id_user', $id_user)->get();
+        $user = Auth::user();
+        $items = Keranjang::with('produk')->where('id_user', $user->id)->get();
 
         foreach ($items as $item) {
-            if ($item->produk && $item->produk->gambar) {
-                $item->produk->gambar = url('uploads/' . $item->produk->gambar);
+            $produk = $item->produk;
+            $item->is_sold = false;
+
+            if ($produk) {
+                $produk->gambar = $produk->gambar
+                    ? url('uploads/' . $produk->gambar)
+                    : null;
+
+                // Cek apakah produk sudah dibeli user lain
+                $sudahDibeli = DetailPesanan::where('id_produk', $produk->id_produk)
+                    ->whereHas('pesanan', function ($q) use ($user) {
+                        $q->where('id_user', '!=', $user->id)
+                          ->whereNotIn('status_pesanan', ['Pesanan Dibatalkan', 'Menunggu Pembayaran']);
+                    })->exists();
+
+                if ($sudahDibeli) {
+                    $item->is_sold = true;
+                }
+            } else {
+                $item->is_sold = true; // Produk sudah dihapus
             }
         }
 
         return response()->json([
             'success' => true,
+            'message' => 'Data keranjang berhasil diambil',
             'keranjang' => $items,
         ]);
     }
 
-    // ✅ Tambah produk ke keranjang dengan validasi stok
+    // ✅ Tambah produk ke keranjang
     public function store(Request $request)
     {
         $request->validate([
-            'id_user' => 'required|integer',
             'id_produk' => 'required|integer',
-            'jumlah' => 'required|integer|min:1',
+            'jumlah'    => 'required|integer|min:1',
         ]);
 
+        $user = Auth::user();
         $produk = Produk::find($request->id_produk);
-        if (!$produk || $produk->stok < $request->jumlah) {
+
+        if (!$produk) {
             return response()->json([
                 'success' => false,
-                'message' => 'Stok produk tidak cukup atau tidak ditemukan',
+                'message' => 'Produk tidak ditemukan',
+            ], 404);
+        }
+
+        if ($produk->stok < $request->jumlah) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jumlah melebihi stok tersedia',
             ], 400);
         }
 
-        // Cek jika item sudah ada → update jumlah
-        $existing = Keranjang::where('id_user', $request->id_user)
+        $existing = Keranjang::where('id_user', $user->id)
             ->where('id_produk', $request->id_produk)
             ->first();
 
         if ($existing) {
-            $existing->jumlah += $request->jumlah;
-            $existing->save();
-
             return response()->json([
-                'success' => true,
-                'message' => 'Jumlah produk diperbarui di keranjang',
-                'data' => $existing,
-            ]);
+                'success' => false,
+                'message' => 'Produk sudah ada di keranjang',
+            ], 409);
         }
 
-        // Tambahkan item baru
         $item = Keranjang::create([
-            'id_user' => $request->id_user,
+            'id_user'   => $user->id,
             'id_produk' => $request->id_produk,
-            'jumlah' => $request->jumlah,
+            'jumlah'    => $request->jumlah,
         ]);
 
         return response()->json([
@@ -73,33 +97,37 @@ class KeranjangController extends Controller
         ]);
     }
 
-    // ✅ Update jumlah
+    // ✅ Update jumlah produk
     public function update(Request $request, $id)
-    {
-        $request->validate([
-            'jumlah' => 'required|integer|min:1',
-        ]);
+{
+    $request->validate([
+        'jumlah' => 'required|integer|min:1',
+    ]);
 
-        $item = Keranjang::findOrFail($id);
-        $item->jumlah = $request->jumlah;
-        $item->save();
+    $user = Auth::user();
+    $item = Keranjang::where('id_keranjang', $id)->where('id_user', $user->id)->firstOrFail();
+    $item->jumlah = $request->jumlah;
+    $item->save();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Jumlah diperbarui',
-            'data' => $item,
-        ]);
-    }
+    return response()->json([
+        'success' => true,
+        'message' => 'Jumlah item berhasil diperbarui',
+        'data' => $item,
+    ]);
+}
 
-    // ✅ Hapus item
+
+    // ✅ Hapus item dari keranjang
     public function destroy($id)
-    {
-        $item = Keranjang::findOrFail($id);
-        $item->delete();
+{
+    $user = Auth::user();
+    $item = Keranjang::where('id_keranjang', $id)->where('id_user', $user->id)->firstOrFail();
+    $item->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Item dihapus dari keranjang',
-        ]);
-    }
+    return response()->json([
+        'success' => true,
+        'message' => 'Item berhasil dihapus dari keranjang',
+    ]);
+}
+
 }

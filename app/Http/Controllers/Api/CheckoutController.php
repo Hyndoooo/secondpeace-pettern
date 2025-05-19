@@ -4,98 +4,166 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Midtrans\Config;
+use Midtrans\Snap;
 use App\Models\Pesanan;
 use App\Models\DetailPesanan;
 use App\Models\Produk;
 use App\Models\Alamat;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
-use Midtrans\Snap;
-use Midtrans\Config;
 
 class CheckoutController extends Controller
 {
     public function checkout(Request $request)
-{
-    $request->validate([
-        'produk' => 'required|array',
-        'produk.*.id_produk' => 'required|integer|exists:produk,id_produk',
-        'produk.*.jumlah' => 'required|integer|min:1',
-        'payment_method' => 'required|string',
-        'ekspedisi' => 'required|string|in:J&T,JNE,SiCepat', // ✅ tambahkan validasi ekspedisi
-    ]);
+    {
+        $request->validate([
+            'produk' => 'required|array',
+            'produk.*.id_produk' => 'required|integer|exists:produk,id_produk',
+            'produk.*.jumlah' => 'required|integer|min:1',
+            'ekspedisi' => 'required|string|in:J&T,JNE,SiCepat',
+        ]);
 
-    $userId = Auth::id();
+        $user = Auth::user();
+        $alamat = Alamat::where('id_user', $user->id)->where('utama', true)->first();
 
-    $alamat = Alamat::where('id_user', $userId)->where('utama', true)->first();
-    if (!$alamat) {
-        return response()->json(['message' => 'Alamat utama tidak ditemukan'], 400);
-    }
-
-    $total = 0;
-    foreach ($request->produk as $item) {
-        $produk = Produk::find($item['id_produk']);
-        if ($produk->stok < $item['jumlah']) {
+        if (!$alamat) {
             return response()->json([
-                'message' => "Stok tidak cukup untuk {$produk->nama_produk}"
+                'success' => false,
+                'message' => 'Alamat utama tidak ditemukan',
             ], 400);
         }
-        $total += $produk->harga * $item['jumlah'];
-    }
 
-    $order_id = 'ORDER-' . strtoupper(Str::random(10));
+        $produkData = collect($request->produk);
+        $total = 0;
+        $items = [];
 
-    $pesanan = Pesanan::create([
-        'id_user' => $userId,
-        'id_alamat' => $alamat->id_alamat,
-        'status_pesanan' => 'Menunggu Pembayaran',
-        'id_pembayaran' => $order_id,
-        'ekspedisi' => $request->ekspedisi ?? 'J&T', // ✅ simpan ekspedisi ke DB
-    ]);
+        // Cek stok dan hitung total
+        foreach ($produkData as $item) {
+            $produk = Produk::find($item['id_produk']);
 
-    foreach ($request->produk as $item) {
-        $produk = Produk::find($item['id_produk']);
+            if (!$produk || $produk->stok < $item['jumlah']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Stok tidak cukup atau produk tidak ditemukan: {$item['id_produk']}",
+                ], 400);
+            }
 
-        DetailPesanan::create([
-            'id_pesanan' => $pesanan->id_pesanan,
-            'id_produk' => $produk->id_produk,
-            'jumlah' => $item['jumlah'],
-            'total_harga' => $produk->harga * $item['jumlah'],
-        ]);
+            $subtotal = $produk->harga * $item['jumlah'];
+            $total += $subtotal;
 
-        $produk->stok -= $item['jumlah'];
-        $produk->save();
-    }
+            $items[] = [
+                'id' => $produk->id_produk,
+                'price' => $produk->harga,
+                'quantity' => $item['jumlah'],
+                'name' => $produk->nama_produk,
+            ];
+        }
 
-    Config::$serverKey = config('midtrans.server_key');
-    Config::$isProduction = config('midtrans.is_production', false);
-    Config::$isSanitized = true;
-    Config::$is3ds = true;
+        if ($total <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Total pembelian tidak boleh 0',
+            ], 400);
+        }
 
-    $params = [
-        'transaction_details' => [
-            'order_id' => $order_id,
-            'gross_amount' => $total,
-        ],
-        'customer_details' => [
-            'first_name' => Auth::user()->nama,
-            'email' => Auth::user()->email,
-        ],
-        'enabled_payments' => [$request->payment_method],
-    ];
+        DB::beginTransaction();
 
-    try {
-        $snapToken = Snap::getSnapToken($params);
-        return response()->json([
-            'snap_token' => $snapToken,
-            'order_id' => $order_id,
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'message' => 'Gagal mendapatkan Snap Token',
-            'error' => $e->getMessage(),
-        ], 500);
-    }
+        try {
+            // Konfigurasi Midtrans
+            Config::$serverKey = config('midtrans.server_key');
+            Config::$isProduction = config('midtrans.is_production', false);
+            Config::$isSanitized = config('midtrans.is_sanitized', true);
+            Config::$is3ds = config('midtrans.is_3ds', true);
+
+            $order_id = 'ORDER-' . strtoupper(Str::random(10));
+
+            // Simpan pesanan sementara
+            $pesanan = Pesanan::create([
+                'id_user' => $user->id,
+                'id_alamat' => $alamat->id_alamat,
+                'status_pesanan' => 'Menunggu Pembayaran',
+                'id_pembayaran' => $order_id,
+                'ekspedisi' => $request->ekspedisi,
+                'expired_at' => null,
+            ]);
+
+            // Simpan detail pesanan & update stok
+            foreach ($produkData as $item) {
+                $produk = Produk::find($item['id_produk']);
+
+                DetailPesanan::create([
+                    'id_pesanan' => $pesanan->id_pesanan,
+                    'id_produk' => $produk->id_produk,
+                    'jumlah' => $item['jumlah'],
+                    'total_harga' => $produk->harga * $item['jumlah'],
+                ]);
+
+                $produk->decrement('stok', $item['jumlah']);
+            }
+
+            // Transaksi Midtrans
+            $params = [
+                'transaction_details' => [
+                    'order_id' => $order_id,
+                    'gross_amount' => $total,
+                ],
+                'customer_details' => [
+                    'first_name' => $user->nama,
+                    'email' => $user->email,
+                    'phone' => $alamat->no_whatsapp,
+                ],
+                'shipping_address' => [
+                    'first_name' => $user->nama,
+                    'address' => $alamat->alamat,
+                    'phone' => $alamat->no_whatsapp,
+                ],
+                'item_details' => $items,
+            ];
+
+            $transaction = Snap::createTransaction($params);
+            $snapToken = $transaction->token ?? null;
+
+if (!$snapToken) {
+    DB::rollBack();
+    return response()->json([
+        'success' => false,
+        'message' => 'Snap token tidak tersedia',
+        'transaction' => $transaction,
+    ], 500);
 }
 
+
+            // Update pesanan
+            $pesanan->update([
+                'snap_token' => $snapToken,
+                'expired_at' => $transaction->expiry_time ?? now()->addMinutes(15),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaksi berhasil dibuat',
+                'snap_token' => $snapToken,
+                'order_id' => $order_id,
+                'expired_at' => $pesanan->expired_at,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('Midtrans SnapToken Error', [
+                'error' => $e->getMessage(),
+                'request' => $request->all(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal membuat transaksi',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

@@ -6,6 +6,7 @@
     <title>@yield('title', 'Dashboard')</title>
     <!-- Link ke Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    @stack('styles')
     <style>
         /* General Styles */
         * {
@@ -117,6 +118,11 @@
                 <li>
                     <a href="{{ route('ekspedisi') }}"><i class="fas fa-truck"></i> Ekspedisi</a>
                 </li> --}}
+                <li>
+                    <a href="{{ route('admin.chat.index') }}">
+                        <i class="fas fa-comments"></i> Chat Pelanggan
+                    </a>
+                </li>
                 <li class="logout">
                     <a href="{{ route('login') }}"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </li>

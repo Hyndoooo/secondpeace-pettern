@@ -4,11 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateProdukTable extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('produk', function (Blueprint $table) {
@@ -23,14 +20,12 @@ return new class extends Migration
             $table->enum('size', ['S', 'M', 'L', 'XL']);
             $table->integer('stok');
             $table->timestamps();
-        });        
+            $table->softDeletes();
+        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('produk');
     }
-};
+}

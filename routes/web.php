@@ -9,7 +9,9 @@ use App\Http\Controllers\Admin\LaporanPenjualanController;
 use App\Http\Controllers\Admin\ProdukController;
 use App\Http\Controllers\Admin\PesananController;
 use App\Http\Middleware\AdminAuth;
-
+use Carbon\Carbon;
+use App\Models\Pesanan;
+use App\Http\Controllers\Admin\ChatRoomAdminController;
 // Pelanggan Controller
 use App\Http\Middleware\PelangganAuth;
 
@@ -71,6 +73,11 @@ Route::middleware(['auth', AdminAuth::class])->group(function () {
     //     return view('admin.ekspedisi.ekspedisi');
     // })->name('ekspedisi');
 
+    // Admin Chat
+    Route::get('/chat-rooms', [ChatRoomAdminController::class, 'index'])->name('admin.chat.index');
+    Route::get('/chat-rooms/{id}', [ChatRoomAdminController::class, 'show'])->name('admin.chat.show');
+    Route::post('/chat-rooms/{id}/send', [ChatRoomAdminController::class, 'send'])->name('admin.chat.send');
+
 });
 
 // =======================
@@ -80,4 +87,25 @@ Route::middleware(['auth', PelangganAuth::class])->group(function () {
     Route::get('/pelanggan/dashboard', function () {
         return view('pelanggan.dashboard-pelanggan');
     })->name('dashboard.pelanggan');
+});
+
+Route::get('/auto-cancel', function () {
+    $now = Carbon::now();
+
+    $expiredOrders = Pesanan::where('status_pesanan', 'Menunggu Pembayaran')
+        ->whereNotNull('expired_at')
+        ->where('expired_at', '<=', $now)
+        ->get();
+
+    $total = 0;
+    foreach ($expiredOrders as $order) {
+        $order->status_pesanan = 'Pesanan Dibatalkan';
+        $order->save();
+        $total++;
+    }
+
+    return response()->json([
+        'message' => 'Auto-cancel success',
+        'dibatalkan' => $total,
+    ]);
 });

@@ -8,12 +8,30 @@ use App\Http\Controllers\Controller;
 
 class ProductController extends Controller
 {
-    // ✅ HANYA Menampilkan stok produk yang tersedia untuk pelanggan
-    public function index()
+    public function index(Request $request)
     {
-        $products = Produk::where('stok', '>', 0)->get()->map(function ($product) {
-            $product->gambar = url('uploads/' . $product->gambar);
-            return $product;
+        $query = Produk::query()->where('stok', '>', 0);
+
+        // 🔍 Filter berdasarkan kategori jika dikirim
+        if ($request->filled('kategori')) {
+            $query->where('kategori_produk', $request->kategori);
+        }
+
+        $products = $query->get()->map(function ($product) {
+            return [
+                'id_produk' => $product->id_produk,
+                'nama_produk' => $product->nama_produk,
+                'deskripsi' => $product->deskripsi,
+                'harga' => $product->harga,
+                'stok' => $product->stok,
+                'size' => $product->size,
+                'kategori_produk' => $product->kategori_produk,
+                'gambar' => $product->gambar
+                    ? url('uploads/' . $product->gambar)
+                    : null,
+                'created_at' => $product->created_at,
+                'updated_at' => $product->updated_at,
+            ];
         });
 
         return response()->json([

@@ -13,13 +13,36 @@ return new class extends Migration
     {
         Schema::create('pesanan', function (Blueprint $table) {
             $table->bigIncrements('id_pesanan');
-            $table->foreignId('id_user')->constrained('users', 'id')->onDelete('cascade');  // Relasi dengan pengguna
-            $table->foreignId('id_alamat')->constrained('alamat', 'id_alamat')->onDelete('cascade');  // Relasi dengan alamat
-            $table->string('id_pembayaran')->nullable();  // ID untuk pembayaran Midtrans
-            $table->enum('status_pesanan', ['Menunggu Pembayaran', 'Pembayaran Diterima', 'Sedang Diproses', 'Pesanan Dibatalkan', 'Pesanan Dikirim', 'Pesanan Diterima']);
-            $table->string('nomor_resi')->nullable();  // Untuk nomor resi pengiriman
-            $table->string('ekspedisi')->nullable();  // Untuk nama ekspedisi
-            $table->timestamps();  // created_at, updated_at
+
+            $table->foreignId('id_user')
+                  ->constrained('users', 'id')
+                  ->onDelete('cascade');
+
+            $table->foreignId('id_alamat')
+                  ->constrained('alamat', 'id_alamat')
+                  ->onDelete('cascade');
+
+            $table->string('id_pembayaran')->nullable();
+
+            // 🆕 Tambahkan kolom snap_token untuk menyimpan token Midtrans Snap
+            $table->string('snap_token')->nullable();
+
+            $table->enum('status_pesanan', [
+                'Menunggu Pembayaran',
+                'Pembayaran Diterima',
+                'Sedang Diproses',
+                'Pesanan Dibatalkan',
+                'Pesanan Dikirim',
+                'Pesanan Diterima'
+            ]);
+
+            $table->string('nomor_resi')->nullable();
+            $table->string('ekspedisi')->nullable();
+
+            $table->timestamp('tanggal_diterima')->nullable(); // ✅ untuk status selesai
+            $table->timestamp('expired_at')->nullable();        // ✅ untuk batas waktu pembayaran
+
+            $table->timestamps();
         });
     }
 

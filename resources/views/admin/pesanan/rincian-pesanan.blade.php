@@ -13,18 +13,19 @@
 <div class="rincian-container">
 
     <!-- Status Pesanan -->
-    <div class="status-bar">
-        <div class="status-group">
-            <span class="status-label">Status Pesanan:</span>
-            <span class="status-value">{{ $pesanan->status_pesanan }}</span>
-        </div>
-        <span class="tanggal-pesan">Dipesan pada: {{ \Carbon\Carbon::parse($pesanan->created_at)->format('d M Y, H:i') }}</span>
-    </div>    
+    <!--<div class="status-bar">-->
+    <!--    <div class="status-group">-->
+    <!--        <span class="status-label">Status Pesanan:</span>-->
+    <!--        <span class="status-value">{{ $pesanan->status_pesanan }}</span>-->
+    <!--    </div>-->
+    <!--    <span class="tanggal-pesan">Dipesan pada: {{ \Carbon\Carbon::parse($pesanan->created_at)->format('d M Y, H:i') }}</span>-->
+    <!--</div>-->
 
     <!-- Box Produk -->
     <div class="produk-box">
         <div class="nama-toko">
             <h5><strong>{{ $pesanan->toko->nama_toko ?? 'Second Peace' }}</strong></h5>
+            <span class="tanggal-pesan">Dipesan pada: {{ \Carbon\Carbon::parse($pesanan->created_at)->format('d M Y, H:i') }}</span>
         </div>
         <div class="produk-list">
             @php $total = 0; @endphp
@@ -34,7 +35,7 @@
                     $total += $subtotal;
                 @endphp
                 <div class="produk-item">
-                    <img src="{{ asset('storage/' . $item->produk->gambar) }}" alt="{{ $item->produk->nama_produk }}">
+                    <img src="{{ asset('uploads/' . $item->produk->gambar) }}" alt="{{ $item->produk->nama_produk }}">
                     <div class="produk-info">
                         <div class="produk-nama">{{ $item->produk->nama_produk }}</div>
                         <div class="produk-variasi">Jumlah: {{ $item->jumlah }}</div>
@@ -64,9 +65,9 @@
     <div class="produk-box">
         <h5><strong>Metode Pembayaran</strong></h5>
         <p>
-            <strong>ID Pembayaran:</strong> {{ $pesanan->pembayaran->id_pembayaran }} <br>
+            <strong>ID Pembayaran:</strong> {{ $pesanan->id_pembayaran }} <br>
             <strong>Metode:</strong> {{ $pesanan->pembayaran->metode_pembayaran }} <br>
-            <strong>Status:</strong> {{ $pesanan->pembayaran->status_pembayaran }} <br>
+            <strong>Status:</strong> {{ $pesanan->status_pesanan }} <br>
         </p>
     </div>
 

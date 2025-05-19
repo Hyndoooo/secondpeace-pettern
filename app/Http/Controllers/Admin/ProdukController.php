@@ -95,14 +95,14 @@ class ProdukController extends Controller
         // Cek apakah ada file gambar yang diupload
         if ($request->hasFile('gambar')) {
             // Hapus gambar lama jika ada
-            if ($produk->gambar && file_exists(public_path('gambar_produk/' . $produk->gambar))) {
-                unlink(public_path('gambar_produk/' . $produk->gambar));
+            if ($produk->gambar && file_exists(public_path('uploads/' . $produk->gambar))) {
+                unlink(public_path('uploads/' . $produk->gambar));
             }
 
             // Simpan gambar baru
             $gambar = $request->file('gambar');
             $namaGambar = time() . '_' . $gambar->getClientOriginalName();
-            $gambar->move(public_path('gambar_produk'), $namaGambar);
+            $gambar->move(public_path('uploads'), $namaGambar);
 
             $produk->gambar = $namaGambar;
         }

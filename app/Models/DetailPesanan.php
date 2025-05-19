@@ -4,18 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DetailPesanan extends Model
 {
     use HasFactory;
 
-    // ✅ Fix nama tabel manual
     protected $table = 'detail_pesanan';
-
-    // ✅ Primary key custom
     protected $primaryKey = 'id_detail_pesanan';
 
-    // ✅ Kolom yang bisa diisi
     protected $fillable = [
         'id_pesanan',
         'id_produk',
@@ -23,15 +20,19 @@ class DetailPesanan extends Model
         'total_harga',
     ];
 
-    // ✅ Relasi ke Pesanan
-    public function pesanan()
+    /**
+     * Relasi ke model Pesanan
+     */
+    public function pesanan(): BelongsTo
     {
         return $this->belongsTo(Pesanan::class, 'id_pesanan');
     }
 
-    // ✅ Relasi ke Produk
-    public function produk()
+    /**
+     * Relasi ke model Produk (termasuk produk yang sudah dihapus)
+     */
+    public function produk(): BelongsTo
     {
-        return $this->belongsTo(Produk::class, 'id_produk');
+        return $this->belongsTo(Produk::class, 'id_produk')->withTrashed();
     }
 }

@@ -10,7 +10,7 @@ use App\Http\Controllers\Controller;
 
 class AuthController extends Controller
 {
-    // Registrasi
+    // ✅ REGISTRASI
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -21,7 +21,11 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422); // pakai 422
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal.',
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
         $user = User::create([
@@ -36,13 +40,13 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'User registered successfully',
+            'message' => 'Registrasi berhasil.',
             'user' => $user,
             'token' => $token,
         ], 200);
     }
 
-    // Login
+    // ✅ LOGIN
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -51,23 +55,29 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422); // pakai 422
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal.',
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['success' => false, 'message' => 'Email atau password salah'], 401);
+            return response()->json([
+                'success' => false,
+                'message' => 'Email atau password salah.',
+            ], 401);
         }
 
         $token = $user->createToken('authToken')->plainTextToken;
 
         return response()->json([
             'success' => true,
-            'message' => 'User logged in successfully',
+            'message' => 'Login berhasil.',
             'user' => $user,
             'token' => $token,
         ], 200);
     }
-    
 }

@@ -6,7 +6,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\Alamat;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -31,9 +31,11 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    // ✅ Tambahkan ini
-    public function alamat()
+    /**
+     * Relasi ke data alamat
+     */
+    public function alamat(): HasMany
     {
-        return $this->hasMany(\App\Models\Alamat::class, 'id_user', 'id');
+        return $this->hasMany(Alamat::class, 'id_user', 'id');
     }
 }

@@ -10,7 +10,7 @@
     <div class="login-container">
         <div class="login-box">
             <div class="image-section">
-                <img src="http://secondpeace.my.id/gambar.JPG" alt="Second Peace Logo"> <!-- Gunakan URL langsung -->
+                <img src="/images/secondpeace.jpg" alt="Second Peace Logo"> <!-- Gunakan URL langsung -->
             </div>
             <div class="form-section">
                 <h2><span class="icon">🧩</span> Second Peace</h2>
