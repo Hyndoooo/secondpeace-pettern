@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\Pesanan;
+use App\Models\Notification;
+
 
 class PesananController extends Controller
 {
@@ -16,10 +18,23 @@ class PesananController extends Controller
         $user = Auth::user();
 
         // Ambil semua pesanan berdasarkan user
-        $pesananQuery = Pesanan::with(['detailPesanan.produk', 'alamat'])
-            ->where('id_user', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $pesananQuery = Pesanan::with([
+    'detailPesanan' => function ($query) {
+        $query->select('id_detail_pesanan', 'id_pesanan', 'id_produk', 'jumlah', 'total_harga');
+    },
+    'detailPesanan.produk' => function ($query) {
+        $query->select('id_produk', 'nama_produk', 'harga', 'gambar', 'size');
+    },
+    'alamat' => function ($query) {
+        $query->select('id_alamat', 'nama', 'alamat', 'no_whatsapp', 'kota_nama', 'provinsi_nama');
+    },
+])
+->where('id_user', $user->id)
+->orderBy('created_at', 'desc')
+->paginate(10);
+Log::info('Total JSON response bytes: ' . strlen(json_encode($pesananQuery->items())));
+
+
 
         // Cek dan update status untuk setiap item
         $items = $pesananQuery->getCollection()->map(function ($pesanan) {
@@ -66,56 +81,91 @@ class PesananController extends Controller
             $pesanan->tanggal = $pesanan->created_at->format('d M Y H:i');
             $pesanan->tanggal_pesan = $pesanan->created_at->toDateTimeString();
             $pesanan->estimasi_tiba = $pesanan->created_at->copy()->addDays(3)->toDateTimeString();
-            $pesanan->grand_total = $pesanan->detailPesanan->sum(function ($d) {
-                return $d->total_harga;
-            });
+            $produkTotal = $pesanan->detailPesanan->sum(function ($d) {
+    return $d->total_harga;
+});
+$pesanan->grand_total = $produkTotal + ($pesanan->ongkir ?? 0);
+
 
             return $pesanan;
         });
 
         // Ganti isi collection dari paginator
         $pesananQuery->setCollection($items);
+        Log::info(json_last_error_msg());
+
+        
 
         return response()->json([
-            'success' => true,
-            'message' => 'Data pesanan berhasil diambil.',
-            'pesanan' => $pesananQuery->items(),
-            'current_page' => $pesananQuery->currentPage(),
-            'last_page' => $pesananQuery->lastPage(),
-            'total' => $pesananQuery->total(),
-        ]);
+    'success' => true,
+    'message' => 'Data pesanan berhasil diambil.',
+    'pesanan' => array_values($pesananQuery->items()), // 🧼 array numerik rapi
+    'current_page' => $pesananQuery->currentPage(),
+    'last_page' => $pesananQuery->lastPage(),
+    'total' => $pesananQuery->total(),
+])->header('Content-Type', 'application/json');
+
+
+
+
     }
 
     // Ambil detail satu pesanan
     public function show($id)
-    {
-        $user = Auth::user();
+{
+    $user = Auth::user();
 
-        $pesanan = Pesanan::with(['detailPesanan.produk', 'alamat'])
-            ->where('id_user', $user->id)
-            ->where('id_pesanan', $id)
-            ->first();
+    $pesanan = Pesanan::with(['detailPesanan.produk', 'alamat'])
+        ->where('id_user', $user->id)
+        ->where('id_pesanan', $id)
+        ->first();
 
-        if (!$pesanan) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pesanan tidak ditemukan',
-            ], 404);
-        }
-
-        $pesanan->tanggal = $pesanan->created_at->format('d M Y H:i');
-        $pesanan->tanggal_pesan = $pesanan->created_at->toDateTimeString();
-        $pesanan->estimasi_tiba = $pesanan->created_at->copy()->addDays(3)->toDateTimeString();
-        $pesanan->grand_total = $pesanan->detailPesanan->sum(function ($d) {
-            return $d->total_harga;
-        });
-
+    if (!$pesanan) {
         return response()->json([
-            'success' => true,
-            'message' => 'Detail pesanan ditemukan',
-            'pesanan' => $pesanan,
-        ]);
+            'success' => false,
+            'message' => 'Pesanan tidak ditemukan',
+        ], 404);
     }
+
+    // Siapkan struktur detail_pesanan
+    $detailPesanan = $pesanan->detailPesanan->map(function ($d) {
+        return [
+            'id_detail_pesanan' => $d->id_detail_pesanan,
+            'jumlah' => $d->jumlah,
+            'total_harga' => $d->total_harga,
+            'produk' => [
+                'id_produk' => $d->produk->id_produk ?? null,
+                'nama_produk' => $d->produk->nama_produk ?? 'Produk tidak tersedia',
+                'harga' => $d->produk->harga ?? 0,
+                'gambar' => $d->produk->gambar ?? '',
+                'size' => $d->produk->size ?? '-',
+            ],
+        ];
+    });
+
+    // Hitung total
+    $produkTotal = $pesanan->detailPesanan->sum('total_harga');
+    $grandTotal = $produkTotal + ($pesanan->ongkir ?? 0);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Detail pesanan ditemukan',
+        'pesanan' => [
+            'id_pesanan' => $pesanan->id_pesanan,
+            'status_pesanan' => $pesanan->status_pesanan,
+            'tanggal' => $pesanan->created_at->format('d M Y H:i'),
+            'tanggal_pesan' => $pesanan->created_at->toDateTimeString(),
+            'estimasi_tiba' => $pesanan->created_at->copy()->addDays(3)->toDateTimeString(),
+            'ongkir' => $pesanan->ongkir,
+            'grand_total' => $grandTotal,
+            'nomor_resi' => $pesanan->nomor_resi,
+            'ekspedisi' => $pesanan->ekspedisi,
+            'alamat' => $pesanan->alamat ?? null,
+            'detail_pesanan' => $detailPesanan,
+        ],
+    ]);
+}
+
 
     // Batalkan pesanan
     public function cancel($id)
@@ -154,15 +204,27 @@ class PesananController extends Controller
             ->first();
 
         if (!$pesanan) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pesanan belum dikirim atau tidak ditemukan.',
-            ], 404);
-        }
+    Log::warning("Gagal markAsReceived. ID: $id, User ID: {$user->id}");
+    return response()->json([
+        'success' => false,
+        'message' => 'Pesanan tidak dapat diperbarui. Mungkin status bukan Dikirim.',
+    ], 404);
+}
+
 
         $pesanan->status_pesanan = 'Pesanan Diterima';
-        $pesanan->tanggal_diterima = now();
-        $pesanan->save();
+$pesanan->tanggal_diterima = now();
+$pesanan->save();
+
+// 🔔 Tambahkan notifikasi
+Notification::create([
+    'id_user' => $user->id,
+    'title' => 'Pesanan Diterima',
+    'message' => 'Terima kasih! Pesanan #' . $pesanan->id_pesanan . ' telah kamu konfirmasi sebagai diterima.',
+    'type' => 'pesanan',
+    'id_ref' => $pesanan->id_pesanan,
+]);
+
 
         return response()->json([
             'success' => true,

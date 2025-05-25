@@ -14,6 +14,11 @@ use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\PesananController;
 use App\Http\Controllers\Api\ChatRoomController;
 use App\Http\Controllers\Api\MessageController;
+//use App\Http\Controllers\Api\RajaOngkirController;
+use App\Http\Controllers\Api\BinderbyteController;
+use App\Http\Controllers\Api\ShippingController;
+use App\Http\Controllers\Api\NotificationController;
+
 
 Route::prefix('v1')->group(function () {
 
@@ -63,6 +68,21 @@ Route::prefix('v1')->group(function () {
         Route::patch('/pesanan/{id}/cancel', [PesananController::class, 'cancel']);
         Route::patch('/pesanan/{id}/mark-received', [PesananController::class, 'markAsReceived']);
 
+        // ===== 🚚 Binderbyte (Alamat & Ongkir) =====
+        Route::get('/binderbyte/provinces', [BinderbyteController::class, 'getProvinces']);
+        Route::get('/binderbyte/cities', [BinderbyteController::class, 'getCities']);
+        Route::post('/binderbyte/cost', [BinderbyteController::class, 'getCost']);
+        // ===== 🚚 Shipping (Alamat & Ongkir) =====
+        Route::post('/shipping/cost', [ShippingController::class, 'calculate']);
+        Route::get('/shipping/provinces', [ShippingController::class, 'provinces']);
+        Route::get('/shipping/cities', [ShippingController::class, 'cities']);
+
+
+        // ===== 🚚 RajaOngkir (Alamat & Ongkir) =====
+        //Route::get('/rajaongkir/provinces', [RajaOngkirController::class, 'getProvinces']);
+        //Route::get('/rajaongkir/cities', [RajaOngkirController::class, 'getCities']);
+        //Route::post('/rajaongkir/cost', [RajaOngkirController::class, 'getCost']);
+
         // ===== 💬 Chat Room =====
         Route::get('/chat-rooms', [ChatRoomController::class, 'index']);
         Route::post('/chat-rooms', [ChatRoomController::class, 'store']);
@@ -72,7 +92,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/chat-rooms/{id}/read', [MessageController::class, 'markAsRead']);
         Route::get('/chat-rooms/unread', [MessageController::class, 'hasUnread']);
 
-
+        // ===== notifikasi =====
+        Route::get('/notifikasi', [NotificationController::class, 'index']);
+    Route::patch('/notifikasi/{id}/baca', [NotificationController::class, 'markAsRead']);
     });
 
 });

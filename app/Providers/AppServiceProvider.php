@@ -19,6 +19,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        config([
+        'rajaongkir.api_key' => env('RAJAONGKIR_API_KEY'),
+    ]);
     }
 }

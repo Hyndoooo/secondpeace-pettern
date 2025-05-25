@@ -11,12 +11,18 @@ class Alamat extends Model
     protected $primaryKey = 'id_alamat';
 
     protected $fillable = [
-        'id_user',
-        'nama',
-        'no_whatsapp',
-        'alamat',
-        'utama',
-    ];
+    'id_user',
+    'nama',
+    'no_whatsapp',
+    'alamat',
+    'provinsi_id',
+    'provinsi_nama',
+    'kota_id',
+    'kota_nama',
+    'utama',
+];
+
+
 
     /**
      * Relasi ke model User

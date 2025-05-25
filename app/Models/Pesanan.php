@@ -12,16 +12,19 @@ class Pesanan extends Model
     protected $table = 'pesanan';
 
     protected $fillable = [
-        'id_user',
-        'id_alamat',
-        'id_pembayaran',
-        'status_pesanan',
-        'nomor_resi',
-        'ekspedisi',
-        'tanggal_diterima',
-        'expired_at',
-        'snap_token',
-    ];
+    'id_user',
+    'id_alamat',
+    'id_pembayaran',
+    'status_pesanan',
+    'nomor_resi',
+    'ekspedisi',
+    'tanggal_diterima',
+    'expired_at',
+    'snap_token',
+    'ongkir',         // ✅ Tambahkan ini
+    'total_harga',    // ✅ Tambahkan ini
+];
+
 
     protected $casts = [
         'expired_at' => 'datetime',
