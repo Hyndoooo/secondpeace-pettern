@@ -36,7 +36,14 @@
 
             <div class="form-group mb-3">
                 <label for="kategori_produk">Kategori Produk</label>
-                <input type="text" id="kategori_produk" name="kategori_produk" class="form-control" value="{{ $produk->kategori_produk }}" required>
+                <select id="kategori_produk" name="kategori_produk" class="form-control" required>
+                    <option value="" disabled {{ $produk->kategori_produk == '' ? 'selected' : '' }}>Pilih kategori produk</option>
+                    <option value="Pria" {{ $produk->kategori_produk == 'Pria' ? 'selected' : '' }}>Pria</option>
+                    <option value="Wanita" {{ $produk->kategori_produk == 'Wanita' ? 'selected' : '' }}>Wanita</option>
+                    <option value="Unisex" {{ $produk->kategori_produk == 'Unisex' ? 'selected' : '' }}>Unisex</option>
+                    <option value="Sepatu" {{ $produk->kategori_produk == 'Sepatu' ? 'selected' : '' }}>Sepatu</option>
+                    <option value="Aksesoris" {{ $produk->kategori_produk == 'Aksesoris' ? 'selected' : '' }}>Aksesoris</option>
+                </select>
             </div>
 
             <div class="form-group mb-3">

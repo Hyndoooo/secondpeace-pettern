@@ -79,14 +79,23 @@
                                 <input type="text" name="nomor_resi" value="{{ $p->nomor_resi ?? '' }}" class="form-control">
                             </td>
                             <td>
-                                <div class="d-flex justify-content-center gap-2">
+                                <div class="d-flex justify-content-center gap-2>
+                                    {{-- Tombol Update --}}
                                     <form action="{{ route('pesanan.update', ['id' => $p->id_pesanan]) }}" method="POST">
                                         @csrf
-                                        <button type="submit" class="btn btn-success">💾 Update</button>
+                                        <button type="submit" class="btn btn-success d-flex align-items-center gap-1">
+                                            <span>Update</span>
+                                        </button>
                                     </form>
-                                    <a href="{{ route('rincian.pesanan', ['id' => $p->id_pesanan]) }}" class="btn btn-info">Rincian Pesanan</a>
+                            
+                                    {{-- Tombol Rincian --}}
+                                    <form action="{{ route('rincian.pesanan', ['id' => $p->id_pesanan]) }}" method="GET">
+                                        <button type="submit" class="btn btn-info d-flex align-items-center gap-1">
+                                            <span>Rincian</span>
+                                        </button>
+                                    </form>
                                 </div>
-                            </td>                                                                        
+                            </td>                                                                       
                         </tr>
                     </form>
                 @endforeach

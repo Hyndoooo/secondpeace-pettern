@@ -22,28 +22,32 @@
     <!--</div>-->
 
     <!-- Box Produk -->
-    <div class="produk-box">
-        <div class="nama-toko">
-            <h5><strong>{{ $pesanan->toko->nama_toko ?? 'Second Peace' }}</strong></h5>
-            <span class="tanggal-pesan">Dipesan pada: {{ \Carbon\Carbon::parse($pesanan->created_at)->format('d M Y, H:i') }}</span>
-        </div>
-        <div class="produk-list">
-            @php $total = 0; @endphp
-            @foreach($pesanan->detailPesanan as $item)
-                @php
-                    $subtotal = $item->jumlah * $item->produk->harga;
-                    $total += $subtotal;
-                @endphp
-                <div class="produk-item">
-                    <img src="{{ asset('uploads/' . $item->produk->gambar) }}" alt="{{ $item->produk->nama_produk }}">
-                    <div class="produk-info">
-                        <div class="produk-nama">{{ $item->produk->nama_produk }}</div>
-                        <div class="produk-variasi">Jumlah: {{ $item->jumlah }}</div>
-                        <div class="produk-harga">Rp {{ number_format($item->produk->harga, 0, ',', '.') }}</div>
+    <div class="toko-box">
+        <div class="produk-box">
+            <div class="nama-toko">
+                <h5><strong>{{ $pesanan->toko->nama_toko ?? 'Second Peace' }}</strong></h5>
+                <span class="tanggal-pesan">Dipesan pada: {{ \Carbon\Carbon::parse($pesanan->created_at)->format('d M Y, H:i') }}</span>
+            </div>
+            <div class="produk-list">
+                @php $total = 0; @endphp
+                @foreach($pesanan->detailPesanan as $item)
+                    @php
+                        $subtotal = $item->jumlah * $item->produk->harga;
+                        $total += $subtotal;
+                    @endphp
+                    <div class="produk-item">
+                        <img src="{{ asset('uploads/' . $item->produk->gambar) }}" alt="{{ $item->produk->nama_produk }}">
+                        <div class="produk-info">
+                            <div class="produk-nama">{{ $item->produk->nama_produk }}</div>
+                            <div class="produk-variasi">Jumlah: {{ $item->jumlah }}</div>
+                            <div class="produk-size">Size: {{ $item->produk->size }}</div>
+                            <div class="produk-kualitas">Kualitas: {{ $item->produk->kualitas }}</div>
+                            <div class="produk-harga">Rp {{ number_format($item->produk->harga, 0, ',', '.') }}</div>
+                        </div>
+                        <div class="produk-subtotal">Rp {{ number_format($subtotal, 0, ',', '.') }}</div>
                     </div>
-                    <div class="produk-subtotal">Rp {{ number_format($subtotal, 0, ',', '.') }}</div>
-                </div>
-            @endforeach
+                @endforeach
+            </div>
         </div>
     </div>
 
@@ -55,6 +59,8 @@
                 <strong>Nama:</strong> {{ $pesanan->alamat->nama }} <br>
                 <strong>Alamat:</strong> {{ $pesanan->alamat->alamat }} <br>
                 <strong>WhatsApp:</strong> {{ $pesanan->alamat->no_whatsapp }} <br>
+                <strong>Ekspedisi:</strong> {{ $pesanan->ekspedisi }} <br>
+                <strong>Nomor Resi:</strong> {{ $pesanan->nomor_resi }} <br>
             </p>
         @else
             <p class="text-danger">Alamat tidak tersedia.</p>

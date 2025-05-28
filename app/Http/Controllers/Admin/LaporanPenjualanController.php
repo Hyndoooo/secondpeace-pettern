@@ -22,20 +22,25 @@ class LaporanPenjualanController extends Controller
                 'detail_pesanan.jumlah',
                 'detail_pesanan.total_harga',
                 'pesanan.status_pesanan'
-            );
-
+            )
+            ->whereIn('pesanan.status_pesanan', [
+                'Pembayaran Diterima',
+                'Sedang Diproses',
+                'Pesanan Dikirim',
+                'Pesanan Diterima'
+            ]);
+    
         if ($request->filled('start_date') && $request->filled('end_date')) {
             $query->whereBetween('pesanan.created_at', [$request->start_date, $request->end_date]);
         }
-
+    
         $laporan = $query->orderBy('pesanan.created_at', 'desc')->get();
-
+    
         return view('admin.laporan-penjualan.laporan-penjualan', compact('laporan'));
     }
 
     public function downloadPDF(Request $request)
     {
-        // Ambil data laporan sesuai query yang digunakan pada index
         $query = DB::table('pesanan')
             ->join('users', 'pesanan.id_user', '=', 'users.id')
             ->join('detail_pesanan', 'pesanan.id_pesanan', '=', 'detail_pesanan.id_pesanan')
@@ -47,28 +52,27 @@ class LaporanPenjualanController extends Controller
                 'detail_pesanan.jumlah',
                 'detail_pesanan.total_harga',
                 'pesanan.status_pesanan'
-            );
-
+            )
+            ->whereIn('pesanan.status_pesanan', [
+                'Pembayaran Diterima',
+                'Sedang Diproses',
+                'Pesanan Dikirim',
+                'Pesanan Diterima'
+            ]);
+    
         if ($request->filled('start_date') && $request->filled('end_date')) {
             $query->whereBetween('pesanan.created_at', [$request->start_date, $request->end_date]);
         }
-
+    
         $laporan = $query->orderBy('pesanan.created_at', 'desc')->get();
-
-        // Hitung total pendapatan
         $totalSemua = $laporan->sum('total_harga');
-
-        // Ambil tanggal untuk penamaan file
+    
         $startDate = \Carbon\Carbon::parse($request->start_date)->format('d-m-Y');
         $endDate = \Carbon\Carbon::parse($request->end_date)->format('d-m-Y');
-
-        // Sesuaikan nama file dengan rentang tanggal
         $fileName = "Laporan Penjualan-{$startDate}-{$endDate}.pdf";
-
-        // Generate PDF dengan view yang sudah dibuat
+    
         $pdf = FacadePdf::loadView('admin.laporan-penjualan.penjualan-pdf', compact('laporan', 'totalSemua'));
-
-        // Download PDF dengan nama file dinamis
+    
         return $pdf->download($fileName);
     }
 
