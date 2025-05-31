@@ -78,7 +78,8 @@ class MessageController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => $message->fresh(),
+            'message' => $message->fresh(['sender']),
+
         ], 201);
     }
 

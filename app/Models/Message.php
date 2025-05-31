@@ -11,6 +11,9 @@ class Message extends Model
 
     protected $fillable = ['chat_room_id', 'sender_id', 'message', 'media_path', 'media_type', 'is_read',];
 
+    protected $casts = [
+    'is_read' => 'boolean',
+];
 
     public function chatRoom()
     {

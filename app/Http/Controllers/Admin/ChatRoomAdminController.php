@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use App\Models\ChatRoom;
 use App\Models\Message;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Notification;
+use Carbon\Carbon;
+
 
 class ChatRoomAdminController extends Controller
 {
@@ -32,16 +35,30 @@ class ChatRoomAdminController extends Controller
 
 
     public function send(Request $request, $id)
-    {
-        $request->validate(['message' => 'required|string']);
+{
+    $request->validate(['message' => 'required|string']);
 
-        $room = ChatRoom::findOrFail($id);
-        $room->messages()->create([
-            'sender_id' => Auth::id(),
-            'message' => $request->message,
-        ]);
+    $room = ChatRoom::findOrFail($id);
 
-        return redirect()->route('admin.chat.show', $id);
-    }
+    // Simpan pesan
+    $room->messages()->create([
+        'sender_id' => Auth::id(),
+        'message' => $request->message,
+    ]);
+
+    // Kirim notifikasi ke user (pelanggan)
+    Notification::create([
+        'id_user' => $room->user_id,
+        'type' => 'chat',
+        'title' => 'Pesan Baru dari Admin',
+        'message' => 'Admin mengirim pesan baru kepadamu',
+        'id_ref' => null,
+        'is_read' => false,
+        'created_at' => Carbon::now(),
+    ]);
+
+    return redirect()->route('admin.chat.show', $id);
+}
+
 }
 

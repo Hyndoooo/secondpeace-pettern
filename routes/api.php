@@ -94,7 +94,7 @@ Route::prefix('v1')->group(function () {
 
         // ===== notifikasi =====
         Route::get('/notifikasi', [NotificationController::class, 'index']);
-    Route::patch('/notifikasi/{id}/baca', [NotificationController::class, 'markAsRead']);
-    });
+        Route::patch('/notifikasi/{id}/baca', [NotificationController::class, 'markAsRead']);
+        });
 
 });
