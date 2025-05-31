@@ -12,15 +12,6 @@
 
 <div class="rincian-container">
 
-    <!-- Status Pesanan -->
-    <!--<div class="status-bar">-->
-    <!--    <div class="status-group">-->
-    <!--        <span class="status-label">Status Pesanan:</span>-->
-    <!--        <span class="status-value">{{ $pesanan->status_pesanan }}</span>-->
-    <!--    </div>-->
-    <!--    <span class="tanggal-pesan">Dipesan pada: {{ \Carbon\Carbon::parse($pesanan->created_at)->format('d M Y, H:i') }}</span>-->
-    <!--</div>-->
-
     <!-- Box Produk -->
     <div class="toko-box">
         <div class="produk-box">
@@ -44,7 +35,7 @@
                             <div class="produk-kualitas">Kualitas: {{ $item->produk->kualitas }}</div>
                             <div class="produk-harga">Rp {{ number_format($item->produk->harga, 0, ',', '.') }}</div>
                         </div>
-                        <div class="produk-subtotal">Rp {{ number_format($subtotal, 0, ',', '.') }}</div>
+                        {{-- <div class="produk-subtotal">Rp {{ number_format($subtotal, 0, ',', '.') }}</div> --}}
                     </div>
                 @endforeach
             </div>
@@ -55,13 +46,13 @@
     <div class="produk-box">
         <h5><strong>Alamat Pengiriman</strong></h5>
         @if($pesanan->alamat)
-            <p>
+            <div class="alamat-item">
                 <strong>Nama:</strong> {{ $pesanan->alamat->nama }} <br>
                 <strong>Alamat:</strong> {{ $pesanan->alamat->alamat }} <br>
                 <strong>WhatsApp:</strong> {{ $pesanan->alamat->no_whatsapp }} <br>
                 <strong>Ekspedisi:</strong> {{ $pesanan->ekspedisi }} <br>
                 <strong>Nomor Resi:</strong> {{ $pesanan->nomor_resi }} <br>
-            </p>
+            </div>
         @else
             <p class="text-danger">Alamat tidak tersedia.</p>
         @endif
@@ -70,16 +61,17 @@
     <!-- Metode Pembayaran -->
     <div class="produk-box">
         <h5><strong>Metode Pembayaran</strong></h5>
-        <p>
+        <div class="metode-item">
             <strong>ID Pembayaran:</strong> {{ $pesanan->id_pembayaran }} <br>
-            <strong>Metode:</strong> {{ $pesanan->pembayaran->metode_pembayaran }} <br>
+            {{-- <strong>Metode:</strong> {{ $pesanan->pembayaran->metode_pembayaran }} <br> --}}
             <strong>Status:</strong> {{ $pesanan->status_pesanan }} <br>
-        </p>
+        </div>
     </div>
 
     <!-- Ringkasan Pembayaran -->
     <div class="produk-box">
         <h5><strong>Pembayaran</strong></h5>
+        <div class="pembayaran-item">
         <table class="table table-borderless mb-0">
             <tr>
                 <td>Total Harga</td>
@@ -94,6 +86,7 @@
                 <td class="text-end"><strong>Rp {{ number_format($total + ($pesanan->ongkir ?? 0), 0, ',', '.') }}</strong></td>
             </tr>
         </table>
+        </div>
     </div>
 
     <!-- Tombol Kembali -->
