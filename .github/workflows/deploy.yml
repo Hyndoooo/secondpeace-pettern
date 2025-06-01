@@ -15,8 +15,8 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: laracicd
-          MYSQL_USER: polindra
-          MYSQL_PASSWORD: polindra
+          MYSQL_USER: root
+          MYSQL_PASSWORD: polindra 
         ports:
           - 3306:3306
         options: >-
