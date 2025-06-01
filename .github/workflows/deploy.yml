@@ -31,6 +31,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Cache Composer dependencies
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-composer-
+
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
@@ -51,6 +59,8 @@ jobs:
         sed -i 's/DB_DATABASE=secondpeace_cpanel/DB_DATABASE=laracicd/' .env
         sed -i 's/DB_USERNAME=root/DB_USERNAME=polindra/' .env
         sed -i 's/DB_PASSWORD=/DB_PASSWORD=polindra/' .env
+        echo "APP_ENV=testing" >> .env
+        echo "APP_KEY=base64:$(php -r 'echo base64_encode(random_bytes(32));')" >> .env
 
     - name: Clear config cache (biar .env kebaca guiss)
       run: php artisan config:clear
@@ -78,7 +88,9 @@ jobs:
         DB_USERNAME: polindra
         DB_PASSWORD: polindra
 
-      run: php artisan migrate:fresh --seed
+      run: |
+        php artisan migrate:fresh --seed
+        php artisan storage:link
 
     - name: Execute tests
       env:
@@ -157,6 +169,7 @@ jobs:
           sudo -u www-data php artisan route:cache
           sudo -u www-data php artisan view:cache
           sudo -u www-data php artisan migrate --force
+          sudo -u www-data php artisan storage:link
 
           # Cleanup
           rm -rf ~/laravel-temp-deploy
