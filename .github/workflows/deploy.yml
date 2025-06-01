@@ -1,0 +1,132 @@
+name: Laravel CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: polindra
+          POSTGRES_PASSWORD: polindra
+          POSTGRES_DB: laracicd
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+        extensions: mbstring, ctype, fileinfo, openssl, PDO, tokenizer, xml, pgsql, pdo_pgsql
+        coverage: none
+
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-interaction --no-progress
+
+    - name: Copy .env.example to .env and update for PostgreSQL
+      run: |
+        cp .env.example .env
+        sed -i 's/DB_CONNECTION=mysql/DB_CONNECTION=pgsql/' .env
+        sed -i 's/DB_HOST=127.0.0.1/DB_HOST=127.0.0.1/' .env
+        sed -i 's/DB_PORT=3306/DB_PORT=5432/' .env
+        sed -i 's/DB_DATABASE=laravel/DB_DATABASE=laracicd/' .env
+        sed -i 's/DB_USERNAME=root/DB_USERNAME=polindra/' .env
+        sed -i 's/DB_PASSWORD=/DB_PASSWORD=polindra/' .env
+
+    - name: Generate app key
+      run: php artisan key:generate
+
+    - name: Run database migrations and seed
+      run: php artisan migrate:fresh --seed
+
+    - name: Execute tests
+      run: php artisan test
+
+    # Uncomment if using npm assets
+    # - name: Build assets
+    #   run: |
+    #     npm install
+    #     npm run prod
+
+    - name: Upload artifact for deployment
+      uses: actions/upload-artifact@v4
+      with:
+        name: laravel-app
+        path: |
+          .
+          !.github/
+          !.git/
+          !node_modules/
+          !vendor/
+          !storage/debugbar/
+        retention-days: 1
+
+  deploy:
+    needs: build-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: laravel-app
+        path: ./deploy
+
+    - name: Install SSH key
+      uses: shimataro/ssh-key-action@v2
+      with:
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        known_hosts: ${{ secrets.KNOWN_HOSTS }}
+
+    - name: Deploy to server via SCP/SSH
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ~/laravel-temp-deploy"
+
+        scp -o StrictHostKeyChecking=no -r ./deploy/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/laravel-temp-deploy/
+
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
+          cd ~/laravel-temp-deploy
+
+          # Backup existing deployment (optional)
+          # tar -czf /backup/laravel-backup-$(date +"%Y%m%d%H%M%S").tar.gz /var/www/laravel-d4rpl2b-kelompok4
+
+          # Copy files ke direktori produksi
+          sudo rsync -avz --delete \
+            --exclude='.env' \
+            --exclude='storage' \
+            --exclude='.git' \
+            --exclude='.github' \
+            ~/laravel-temp-deploy/ /var/www/laravel-d4rpl2b-kelompok4/
+
+          # Set permission
+          sudo chown -R www-data:www-data /var/www/laravel-d4rpl2b-kelompok4
+          sudo chmod -R 755 /var/www/laravel-d4rpl2b-kelompok4/storage
+          sudo chmod -R 755 /var/www/laravel-d4rpl2b-kelompok4/bootstrap/cache
+
+          # Jalankan composer & artisan commands
+          cd /var/www/laravel-d4rpl2b-kelompok4
+          sudo -u www-data composer install --optimize-autoloader --no-dev
+          sudo -u www-data php artisan config:cache
+          sudo -u www-data php artisan route:cache
+          sudo -u www-data php artisan view:cache
+          sudo -u www-data php artisan migrate --force
+
+          # Bersihkan folder sementara
+          rm -rf ~/laravel-temp-deploy
+        EOF
