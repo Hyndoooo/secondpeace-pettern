@@ -18,7 +18,7 @@ jobs:
           MYSQL_USER: polindra
           MYSQL_PASSWORD: polindra
         ports:
-          - 3307:3306
+          - 3306:3306
         options: >-
           --health-cmd "mysqladmin ping -p$$MYSQL_ROOT_PASSWORD"
           --health-interval 10s
@@ -82,7 +82,7 @@ jobs:
       env:
         DB_CONNECTION: mysql
         DB_HOST: 127.0.0.1
-        DB_PORT: 3307
+        DB_PORT: 3306
         DB_DATABASE: laracicd
         DB_USERNAME: polindra
         DB_PASSWORD: polindra
@@ -110,7 +110,7 @@ jobs:
     - name: Download artifact
       uses: actions/download-artifact@v4
       with:
-        name: laravel-rpl2b-kelompok7
+        name: laravel-d4rpl2b-kelompok4
         path: ./deploy
 
     - name: Install SSH key
@@ -133,7 +133,7 @@ jobs:
           cd ~/laravel-temp-deploy
 
           # Backup existing deployment (optional)
-          # tar -czf /backup/laravel-backup-$(date +"%Y%m%d%H%M%S").tar.gz /var/www/laravel-rpl2b-kelompok7
+          # tar -czf /backup/laravel-backup-$(date +"%Y%m%d%H%M%S").tar.gz /var/www/laravel-d4rpl2b-kelompok47
 
           # Copy files to production directory
           sudo rsync -avz --delete \
