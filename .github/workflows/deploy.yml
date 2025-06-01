@@ -15,10 +15,10 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: laracicd
-          MYSQL_USER: root
-          MYSQL_PASSWORD: polindra 
+          MYSQL_USER: polindra
+          MYSQL_PASSWORD: polindra
         ports:
-          - 3306:3306
+          - 3307:3306
         options: >-
           --health-cmd "mysqladmin ping -p$$MYSQL_ROOT_PASSWORD"
           --health-interval 10s
@@ -45,10 +45,13 @@ jobs:
         cp .env.example .env
         sed -i 's/DB_CONNECTION=mysql/DB_CONNECTION=mysql/' .env
         sed -i 's/DB_HOST=127.0.0.1/DB_HOST=127.0.0.1/' .env
-        sed -i 's/DB_PORT=3306/DB_PORT=3306/' .env
+        sed -i 's/DB_PORT=3306/DB_PORT=3307/' .env
         sed -i 's/DB_DATABASE=laravel/DB_DATABASE=laracicd/' .env
         sed -i 's/DB_USERNAME=root/DB_USERNAME=polindra/' .env
         sed -i 's/DB_PASSWORD=/DB_PASSWORD=polindra/' .env
+
+    - name: Clear config cache (biar .env kebaca)
+      run: php artisan config:clear
 
     - name: Generate app key
       run: php artisan key:generate
@@ -56,7 +59,7 @@ jobs:
     - name: Wait for MySQL to be ready
       run: |
         for i in {1..10}; do
-          if mysqladmin ping -h 127.0.0.1 -u polindra -p polindra --silent; then
+          if mysqladmin ping -h 127.0.0.1 -u polindra -ppolindra --silent; then
             echo "MySQL is ready!"
             break
           fi
@@ -65,15 +68,30 @@ jobs:
         done
 
     - name: Run database migrations and seed
+      env:
+        DB_CONNECTION: mysql
+        DB_HOST: 127.0.0.1
+        DB_PORT: 3307
+        DB_DATABASE: laracicd
+        DB_USERNAME: polindra
+        DB_PASSWORD: polindra
+
       run: php artisan migrate:fresh --seed
 
     - name: Execute tests
+      env:
+        DB_CONNECTION: mysql
+        DB_HOST: 127.0.0.1
+        DB_PORT: 3307
+        DB_DATABASE: laracicd
+        DB_USERNAME: polindra
+        DB_PASSWORD: polindra
       run: php artisan test
 
     - name: Upload artifact for deployment
       uses: actions/upload-artifact@v4
       with:
-        name: laravel-app
+        name: laravel-d4rpl2b-kelompok4
         path: |
           .
           !.github/
@@ -92,7 +110,7 @@ jobs:
     - name: Download artifact
       uses: actions/download-artifact@v4
       with:
-        name: laravel-app
+        name: laravel-rpl2b-kelompok7
         path: ./deploy
 
     - name: Install SSH key
@@ -100,7 +118,7 @@ jobs:
       with:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         known_hosts: ${{ secrets.KNOWN_HOSTS }}
-        port: 64000
+        port: 22
 
     - name: Deploy to server via SCP/SSH
       run: |
@@ -115,7 +133,7 @@ jobs:
           cd ~/laravel-temp-deploy
 
           # Backup existing deployment (optional)
-          # tar -czf /backup/laravel-backup-$(date +"%Y%m%d%H%M%S").tar.gz /var/www/laravel-d4rpl2b-kelompok4
+          # tar -czf /backup/laravel-backup-$(date +"%Y%m%d%H%M%S").tar.gz /var/www/laravel-rpl2b-kelompok7
 
           # Copy files to production directory
           sudo rsync -avz --delete \
