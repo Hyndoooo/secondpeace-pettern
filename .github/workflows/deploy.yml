@@ -50,7 +50,7 @@ jobs:
         sed -i 's/DB_USERNAME=root/DB_USERNAME=polindra/' .env
         sed -i 's/DB_PASSWORD=/DB_PASSWORD=polindra/' .env
 
-    - name: Clear config cache (biar .env kebaca)
+    - name: Clear config cache (biar .env kebaca guis)
       run: php artisan config:clear
 
     - name: Generate app key
