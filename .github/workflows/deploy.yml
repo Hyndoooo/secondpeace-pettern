@@ -1,4 +1,4 @@
-name: Laravel CI/CD
+name: Laravel CI/CD (MySQL)
 
 on:
   push:
@@ -7,22 +7,24 @@ on:
     branches: [ main ]
 
 jobs:
-  build-test:
+  laravel-d4rpl2b-kelompok4:
     runs-on: ubuntu-latest
+
     services:
-      postgres:
-        image: postgres:latest
+      mysql:
+        image: mysql:8.0
         env:
-          POSTGRES_USER: polindra
-          POSTGRES_PASSWORD: polindra
-          POSTGRES_DB: laracicd
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: laracicd
+          MYSQL_USER: polindra
+          MYSQL_PASSWORD: polindra
         ports:
-          - 5432:5432
+          - 3306:3306
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd="mysqladmin ping -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
 
     steps:
       - name: Checkout code
@@ -32,29 +34,40 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: mbstring, ctype, fileinfo, openssl, pdo_pgsql
+          extensions: mbstring, ctype, fileinfo, openssl, pdo, tokenizer, xml, mysql, pdo_mysql
           coverage: none
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Setup .env for PostgreSQL
+      - name: Configure .env
         run: |
           cp .env.example .env
-          php -r "file_put_contents('.env', preg_replace('/DB_CONNECTION=.*/', 'DB_CONNECTION=pgsql', file_get_contents('.env')));"
-          php -r "file_put_contents('.env', preg_replace('/DB_HOST=.*/', 'DB_HOST=127.0.0.1', file_get_contents('.env')));"
-          php -r "file_put_contents('.env', preg_replace('/DB_PORT=.*/', 'DB_PORT=5432', file_get_contents('.env')));"
-          php -r "file_put_contents('.env', preg_replace('/DB_DATABASE=.*/', 'DB_DATABASE=laracicd', file_get_contents('.env')));"
-          php -r "file_put_contents('.env', preg_replace('/DB_USERNAME=.*/', 'DB_USERNAME=polindra', file_get_contents('.env')));"
-          php -r "file_put_contents('.env', preg_replace('/DB_PASSWORD=.*/', 'DB_PASSWORD=polindra', file_get_contents('.env')));"
+          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
+          sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+          sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
+          sed -i 's/DB_DATABASE=.*/DB_DATABASE=laracicd/' .env
+          sed -i 's/DB_USERNAME=.*/DB_USERNAME=polindra/' .env
+          sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=polindra/' .env
 
       - name: Generate app key
         run: php artisan key:generate
 
-      - name: Run database migrations and seed
+      - name: Wait for MySQL to be ready
+        run: |
+          for i in {1..10}; do
+            if mysqladmin ping -h 127.0.0.1 -u polindra -ppolindra --silent; then
+              echo "MySQL is ready!"
+              break
+            fi
+            echo "Waiting for MySQL... Attempt $i/10"
+            sleep 5
+          done
+
+      - name: Run migrations and seed
         run: php artisan migrate:fresh --seed
 
-      - name: Execute tests
+      - name: Run tests
         run: php artisan test
 
       - name: Upload artifact for deployment
@@ -62,16 +75,16 @@ jobs:
         with:
           name: laravel-app
           path: |
-            ./
-            !.git/
+            .
             !.github/
+            !.git/
             !node_modules/
             !vendor/
             !storage/debugbar/
           retention-days: 1
 
   deploy:
-    needs: build-test
+    needs: laravel-d4rpl2b-kelompok4
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
 
@@ -87,30 +100,28 @@ jobs:
         with:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           known_hosts: ${{ secrets.KNOWN_HOSTS }}
+          port: 22
 
       - name: Deploy to server via SCP/SSH
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ~/laravel-temp-deploy"
+          ssh -o StrictHostKeyChecking=no -p 22 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "mkdir -p ~/laravel-d4rpl2b-kelompok4"
 
-          scp -o StrictHostKeyChecking=no -r ./deploy/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/laravel-temp-deploy/
+          scp -o StrictHostKeyChecking=no -P 22 -r ./deploy/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/laravel-d4rpl2b-kelompok4/
 
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-            cd ~/laravel-temp-deploy
+          ssh -o StrictHostKeyChecking=no -p 22 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd ~/laravel-d4rpl2b-kelompok4
 
-            # Sync to production
             sudo rsync -avz --delete \
               --exclude='.env' \
               --exclude='storage' \
               --exclude='.git' \
               --exclude='.github' \
-              ./ /var/www/laravel-d4rpl2b-kelompok4/
+              ~/laravel-d4rpl2b-kelompok4/ /var/www/laravel-d4rpl2b-kelompok4/
 
-            # Set permissions
             sudo chown -R www-data:www-data /var/www/laravel-d4rpl2b-kelompok4
             sudo chmod -R 755 /var/www/laravel-d4rpl2b-kelompok4/storage
             sudo chmod -R 755 /var/www/laravel-d4rpl2b-kelompok4/bootstrap/cache
 
-            # Final Laravel setup
             cd /var/www/laravel-d4rpl2b-kelompok4
             sudo -u www-data composer install --optimize-autoloader --no-dev
             sudo -u www-data php artisan config:cache
@@ -118,6 +129,5 @@ jobs:
             sudo -u www-data php artisan view:cache
             sudo -u www-data php artisan migrate --force
 
-            # Clean up
-            rm -rf ~/laravel-temp-deploy
+            rm -rf ~/laravel-d4rpl2b-kelompok4
           EOF
