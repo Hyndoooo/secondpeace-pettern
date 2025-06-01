@@ -31,6 +31,7 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
+      # php version 8.3
         php-version: '8.3'
         extensions: mbstring, ctype, fileinfo, openssl, PDO, tokenizer, xml, pgsql, pdo_pgsql
         coverage: none
