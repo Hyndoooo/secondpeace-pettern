@@ -103,7 +103,7 @@ jobs:
     - name: Upload artifact for deployment
       uses: actions/upload-artifact@v4
       with:
-        name: laravel-d4rpl2b-kelompok4
+        name: secondpeace-d4rpl2b
         path: |
           .
           !.github/
@@ -122,7 +122,7 @@ jobs:
     - name: Download artifact
       uses: actions/download-artifact@v4
       with:
-        name: laravel-d4rpl2b-kelompok4
+        name: secondpeace-d4rpl2b
         path: ./deploy
 
     - name: Install SSH key
@@ -145,7 +145,7 @@ jobs:
           cd ~/laravel-temp-deploy
 
           # Backup existing deployment (optional)
-          # tar -czf /backup/laravel-backup-$(date +"%Y%m%d%H%M%S").tar.gz /var/www/laravel-d4rpl2b-kelompok47
+          # tar -czf /backup/laravel-backup-$(date +"%Y%m%d%H%M%S").tar.gz /var/www/secondpeace-d4rpl2b
 
           # Copy files to production directory
           sudo rsync -avz --delete \
@@ -153,15 +153,15 @@ jobs:
             --exclude='storage' \
             --exclude='.git' \
             --exclude='.github' \
-            ~/laravel-temp-deploy/ /var/www/laravel-d4rpl2b-kelompok4/
+            ~/laravel-temp-deploy/ /var/www/secondpeace-d4rpl2b/
 
           # Set permissions
-          sudo chown -R www-data:www-data /var/www/laravel-d4rpl2b-kelompok4
-          sudo chmod -R 755 /var/www/laravel-d4rpl2b-kelompok4/storage
-          sudo chmod -R 755 /var/www/laravel-d4rpl2b-kelompok4/bootstrap/cache
+          sudo chown -R www-data:www-data /var/www/secondpeace-d4rpl2b
+          sudo chmod -R 755 /var/www/secondpeace-d4rpl2b/storage
+          sudo chmod -R 755 /var/www/secondpeace-d4rpl2b/bootstrap/cache
 
           # Run deployment commands
-          cd /var/www/laravel-d4rpl2b-kelompok4
+          cd /var/www/secondpeace-d4rpl2b
           sudo -u www-data composer install --optimize-autoloader --no-dev
           sudo -u www-data php artisan config:cache
           sudo -u www-data php artisan route:cache
